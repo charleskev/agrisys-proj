@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #f7f8f5;
+  color: #17231d;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #dcebdc; color: #102b23; }
+
+.button { @apply w-full rounded-md bg-emerald-800 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60; }
+
+@layer base {
+  input:not([type="file"]):not([type="checkbox"]):not([type="radio"]), select, textarea { @apply rounded-md border-slate-300 transition-colors focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100; }
+  input[type="file"] { @apply rounded-md border border-dashed border-slate-300 bg-slate-50 p-2 text-slate-600 transition-colors hover:border-emerald-500; }
+}
+
+.hero-scene { perspective: 1200px; }
+.hero-farm-art { transform: perspective(1200px) rotateX(3deg) rotateY(-4deg); filter: drop-shadow(0 24px 35px rgb(1 18 12 / 40%)); transition: transform 350ms ease, filter 350ms ease; }
+.hero-scene:hover .hero-farm-art { transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(-4px); filter: drop-shadow(0 30px 42px rgb(1 18 12 / 48%)); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
