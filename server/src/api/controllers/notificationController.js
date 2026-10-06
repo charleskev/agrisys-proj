@@ -3,6 +3,11 @@ import { createNotifications, listNotifications, markRead } from "../models/noti
 import { sendFarmerNotificationSms } from "../services/smsService.js";
 import { sendFarmerNotificationEmails } from "../services/emailService.js";
 import { publishRealtimeUpdate } from "../services/realtimeService.js";
+import {
+  createAnnouncementWithNotifications,
+  listAnnouncements,
+  updateAnnouncement,
+} from "../models/announcementModel.js";
 
 const normalizeBarangay = value => String(value || "").trim().toLowerCase().replace(/^barangay\s+/, "").replace("bagumbayan", "bagong bayan").replace("santa cruz", "sta. cruz").replace("orcunoma", "orconuma").replace("polusahi", "pulosahi").replace("masagui", "masaguisi");
 
@@ -19,7 +24,19 @@ export async function send(req, res, next) {
     if (recipientMode === "barangay") recipients = approvedFarmers.filter(farmer => normalizeBarangay(farmer.barangay) === normalizeBarangay(barangay));
     if (recipientMode === "all") recipients = approvedFarmers;
     if (!recipients.length) return res.status(422).json({ message: "No approved farmers match the selected recipients." });
-    const count = await createNotifications({ farmerIds: recipients.map(farmer => farmer.id), message, type, createdBy: req.user.id });
+    const announcement = await createAnnouncementWithNotifications({
+      farmerIds: recipients.map(farmer => farmer.id),
+      createdBy: req.user.id,
+      recipientMode,
+      recipientValue: recipientMode === "individual"
+        ? String(farmerId || "")
+        : recipientMode === "barangay"
+          ? String(barangay || "")
+          : null,
+      message,
+      type,
+    });
+    const count = announcement.count;
     publishRealtimeUpdate("notification.created");
     let sms = { status: "not_configured", recipients: 0 };
     try { sms = await sendFarmerNotificationSms(recipients, message); } catch { sms = { status: "failed", recipients: 0 }; }
@@ -39,3 +56,27 @@ export async function read(req, res, next) {
     res.json({ notification });
   } catch (error) { next(error); }
 }
+
+export async function allAnnouncements(req, res, next) {
+  try {
+    res.json({ announcements: await listAnnouncements() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function editAnnouncement(req, res, next) {
+  try {
+    const announcement = await updateAnnouncement(req.params.id, req.body);
+    if (!announcement) {
+      return res.status(404).json({ message: "Announcement was not found." });
+    }
+
+    publishRealtimeUpdate("announcement.updated");
+    res.json({ announcement });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Delete: export { existingHandlerName as allAnnouncements };

@@ -148,3 +148,123 @@ function QuickLink({ href, title, text }) { return <a href={href} className="rou
 function Alert({ text, error = false }) { return <p className={`mt-5 rounded-xl p-3 text-sm ${error ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>{text}</p>; }
 function Empty({ text }) { return <p className="p-6 text-center text-sm text-slate-500">{text}</p>; }
 function Loading() { return <div className="mt-6 animate-pulse rounded-lg bg-slate-100 p-12 text-center text-sm text-slate-400">Loading administrator overview...</div>; }
+
+export function AnnouncementsPage({ token, onLogout }) {
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setError("");
+      const data = await api("/notifications/announcements", { token });
+      setItems(data.announcements);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+  useRealtimeRefresh(token, load);
+
+  async function save(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const result = await api(`/notifications/announcements/${editing.id}`, {
+        token,
+        method: "PATCH",
+        body: JSON.stringify({
+          message: editing.message,
+          type: editing.type,
+        }),
+      });
+
+      setItems(current =>
+        current.map(item =>
+          item.id === result.announcement.id
+            ? { ...item, ...result.announcement }
+            : item
+        )
+      );
+      setEditing(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <AppShell role="staff" onLogout={onLogout}>
+      <PageHeader
+        eyebrow="MAO communication"
+        title="Announcements"
+        description="View announcements sent to farmers and edit their in-app message."
+        action={<button onClick={load} className="button !w-auto">Refresh</button>}
+      />
+
+      {error && <Alert text={error} error />}
+
+      <section className="mt-6 space-y-4">
+        {loading && <Loading />}
+        {!loading && items.map(item => (
+          <article key={item.id} className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+            {editing?.id === item.id ? (
+              <form onSubmit={save} className="space-y-3">
+                <select
+                  value={editing.type}
+                  onChange={event => setEditing({ ...editing, type: event.target.value })}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                >
+                  <option value="benefit">Benefit / assistance</option>
+                  <option value="alert">Weather or service alert</option>
+                </select>
+                <textarea
+                  required
+                  maxLength={5000}
+                  value={editing.message}
+                  onChange={event => setEditing({ ...editing, message: event.target.value })}
+                  className="w-full rounded-lg border border-slate-300 p-3"
+                  rows={4}
+                />
+                <button disabled={saving} className="button !w-auto">
+                  {saving ? "Saving..." : "Save changes"}
+                </button>
+                <button type="button" onClick={() => setEditing(null)} className="ml-2 rounded-lg border px-4 py-2">
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <StatusBadge value={item.type} />
+                    <p className="mt-2 text-sm text-slate-500">
+                      {new Date(item.created_at).toLocaleString()} · {number(item.recipient_count)} recipient(s)
+                      {item.created_by_name ? ` · Posted by ${item.created_by_name}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setEditing({ id: item.id, message: item.message, type: item.type })}
+                    className="rounded-lg border border-emerald-200 px-3 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <p className="mt-4 whitespace-pre-wrap leading-6 text-slate-700">{item.message}</p>
+              </>
+            )}
+          </article>
+        ))}
+        {!loading && !items.length && <Empty text="No announcements have been posted yet." />}
+      </section>
+    </AppShell>
+  );
+}

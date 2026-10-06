@@ -17,6 +17,7 @@ const staffLinks = [
   { label: "Farmer Registrations", href: "#registrations", tag: "Farmers" },
   { label: "Accepted Farmers", href: "#farmers", tag: "Directory" },
   { group: "Communication", label: "Send Notification", href: "#send-notification", tag: "Notify" },
+  { label: "Announcements", href: "#announcements", tag: "Posts" },
   { group: "MAO Staff", label: "Farmer Accounts", href: "#users", tag: "Users" },
   { label: "MAO Staff Center", href: "#admin", tag: "MAO", adminOnly: true },
 ];
